@@ -17,9 +17,62 @@ export default function AddPost(){
     setContent(event.target.value);
   };
 
+
+  async function createPostAndFetchPublished(title, content) {
+    try {
+      // Create a new post and fetch all published posts in sequence
+      const createdPost = await prisma.post.create({
+        data: {
+            title,
+            content,
+            published: true,
+            author: {create: {
+                name: 'ryan'
+            }}
+        }
+     });
+  
+      console.log("Created Post:", createdPost);
+  
+      const publishedPosts = await prisma.post.findMany({
+        where: { published: true },
+        include: {
+          author: {
+            select: { name: true },
+          },
+        },
+      });
+  
+      console.log("Published Posts:", publishedPosts);
+  
+      return { createdPost, publishedPosts };
+    } catch (error) {
+      console.error("Error during operation:", error);
+      throw error; // Handle or rethrow error as appropriate
+    }
+  }
+
+
+  (async () => {
+    try {
+      const result = await createPostAndFetchPublished("Post Title", "Post content");
+      console.log("Result:", result);
+    } catch (err) {
+      console.error("Operation failed:", err);
+    }
+  })();
+
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     
+    try {
+      const result = await createPostAndFetchPublished("Post Title", "Post content");
+      console.log("Result:", result);
+    } catch (err) {
+      console.error("Operation failed:", err);
+    }
+
     try{
         await fetch('/api/add-post', {
             method: 'POST', 
@@ -27,6 +80,16 @@ export default function AddPost(){
             'Content-Type': 'application/json'
             },
             body: JSON.stringify({title, content}) })
+
+
+            const posts = await prisma.post.findMany({
+              where: {published: true},
+              include: {
+                author: {
+                  select: {name: true}
+                }
+              }
+            })
             
         router.refresh()
     } catch (error){
@@ -35,6 +98,10 @@ export default function AddPost(){
 
     setTitle('');
     setContent('');
+
+
+
+
   };
 
     return (
